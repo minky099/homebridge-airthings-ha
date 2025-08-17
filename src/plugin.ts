@@ -1,12 +1,10 @@
-import { AirthingsClient, SensorResult, SensorUnits } from 'airthings-consumer-api';
+import fetch from 'node-fetch';
 import { AccessoryConfig, AccessoryPlugin, API, Formats, Logging, Perms, Service } from 'homebridge';
-
 import { AirthingsDeviceInfo, getAirthingsDeviceInfoBySerialNumber } from './device.js';
 
 export class AirthingsPlugin implements AccessoryPlugin {
     private readonly log: Logging;
 
-    private readonly airthingsClient: AirthingsClient;
     private readonly airthingsConfig: AirthingsPluginConfig;
     private readonly airthingsDevice: AirthingsDeviceInfo;
 
@@ -26,14 +24,6 @@ export class AirthingsPlugin implements AccessoryPlugin {
 
     constructor(log: Logging, config: AirthingsPluginConfig, api: API) {
         this.log = log;
-
-        if (!config.clientId) {
-            this.log.error('Missing required config value: clientId');
-        }
-
-        if (!config.clientSecret) {
-            this.log.error('Missing required config value: clientSecret');
-        }
 
         if (!config.serialNumber) {
             this.log.error('Missing required config value: serialNumber');
@@ -72,10 +62,10 @@ export class AirthingsPlugin implements AccessoryPlugin {
             config.refreshInterval = 60;
         }
 
-        this.airthingsClient = new AirthingsClient({
-            clientId: config.clientId ?? '',
-            clientSecret: config.clientSecret ?? ''
-        });
+        if (!config.homeAssistantUrl || !config.homeAssistantToken) {
+            this.log.error('Missing Home Assistant configuration (homeAssistantUrl, homeAssistantToken)');
+        }
+
         this.airthingsConfig = config;
         this.airthingsDevice = getAirthingsDeviceInfoBySerialNumber(config.serialNumber);
 
@@ -211,25 +201,63 @@ export class AirthingsPlugin implements AccessoryPlugin {
     }
 
     async getLatestSensorResult() {
-        if (this.airthingsConfig.serialNumber == undefined) {
+        if (!this.airthingsConfig.serialNumber) {
             return;
         }
 
         try {
-            const sensorResults = await this.airthingsClient.getSensors(SensorUnits.Metric, [this.airthingsConfig.serialNumber]);
+            const baseUrl = this.airthingsConfig.homeAssistantUrl!;
+            const token = this.airthingsConfig.homeAssistantToken!;
 
-            if (sensorResults.results.length === 0) {
-                this.log.error('No sensor results found!');
-                return;
+            const sensorTypes = [
+                "co2",
+                "humidity",
+                "pm25",
+                "pressure",
+                "radonShortTermAvg",
+                "temp",
+                "voc"
+            ];
+
+            const sensors: any[] = [];
+
+            for (const type of sensorTypes) {
+                const entityId = `sensor.${this.airthingsConfig.serialNumber}_${type}`;
+                const url = `${baseUrl}/api/states/${entityId}`;
+
+                const res = await fetch(url, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    }
+                });
+
+                if (!res.ok) {
+                    this.log.warn(`Failed to fetch ${entityId}: ${res.statusText}`);
+                    continue;
+                }
+
+                const data = await res.json();
+                const value = parseFloat(data.state);
+
+                if (!isNaN(value)) {
+                    sensors.push({
+                        sensorType: type,
+                        value: value
+                    });
+                }
             }
 
-            this.lastSensorResult = sensorResults.results[0];
+            this.lastSensorResult = {
+                serialNumber: this.airthingsConfig.serialNumber,
+                sensors: sensors,
+                recorded: new Date().toISOString()
+            };
 
             if (this.airthingsConfig.debug) {
                 this.log.info(JSON.stringify(this.lastSensorResult));
             }
-        }
-        catch (err) {
+        } catch (err) {
             if (err instanceof Error) {
                 this.log.error(err.message);
             }
@@ -249,15 +277,10 @@ export class AirthingsPlugin implements AccessoryPlugin {
 
         const lastSensorResultRecordedAt = this.lastSensorResult.recorded ? Math.floor(new Date(this.lastSensorResult.recorded).getTime()) : undefined;
 
-        // HomeKit Battery Service
-        if (this.lastSensorResult.batteryPercentage) {
-            this.batteryService.getCharacteristic(api.hap.Characteristic.BatteryLevel).updateValue(this.lastSensorResult.batteryPercentage);
-            this.batteryService.getCharacteristic(api.hap.Characteristic.StatusLowBattery).updateValue(
-                this.lastSensorResult.batteryPercentage > 10
-                    ? api.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-                    : api.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-            );
-        }
+        // HomeKit Battery Service (Home Assistant에서는 배터리 센서가 없다고 가정)
+        this.batteryService.getCharacteristic(api.hap.Characteristic.StatusLowBattery).updateValue(
+            api.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+        );
 
         // HomeKit Air Quality Service
         this.airQualityService.getCharacteristic(api.hap.Characteristic.AirQuality).updateValue(
@@ -296,21 +319,11 @@ export class AirthingsPlugin implements AccessoryPlugin {
             this.temperatureService.getCharacteristic(api.hap.Characteristic.CurrentTemperature).updateValue(tempSensor.value);
             this.temperatureService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(true);
         }
-        else {
-            this.temperatureService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(
-                lastSensorResultRecordedAt != undefined && Date.now() - lastSensorResultRecordedAt < 2 * 60 * 60 * 1000
-            );
-        }
 
         // HomeKit Humidity Service
         if (humiditySensor) {
             this.humidityService.getCharacteristic(api.hap.Characteristic.CurrentRelativeHumidity).updateValue(humiditySensor.value);
             this.humidityService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(true);
-        }
-        else {
-            this.humidityService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(
-                lastSensorResultRecordedAt != undefined && Date.now() - lastSensorResultRecordedAt < 2 * 60 * 60 * 1000
-            );
         }
 
         // HomeKit CO2 Service
@@ -323,21 +336,11 @@ export class AirthingsPlugin implements AccessoryPlugin {
             this.carbonDioxideService.getCharacteristic(api.hap.Characteristic.CarbonDioxideLevel).updateValue(co2Sensor.value);
             this.carbonDioxideService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(true);
         }
-        else {
-            this.carbonDioxideService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(
-                lastSensorResultRecordedAt != undefined && Date.now() - lastSensorResultRecordedAt < 2 * 60 * 60 * 1000
-            );
-        }
 
         // Eve Air Pressure Service
         if (pressureSensor) {
             this.airPressureService.getCharacteristic('Air Pressure')?.updateValue(pressureSensor.value);
             this.airPressureService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(true);
-        }
-        else {
-            this.airPressureService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(
-                lastSensorResultRecordedAt != undefined && Date.now() - lastSensorResultRecordedAt < 2 * 60 * 60 * 1000
-            );
         }
 
         // HomeKit Radon (Leak) Service
@@ -348,11 +351,6 @@ export class AirthingsPlugin implements AccessoryPlugin {
                     : api.hap.Characteristic.LeakDetected.LEAK_DETECTED
             );
             this.radonService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(true);
-        }
-        else {
-            this.radonService.getCharacteristic(api.hap.Characteristic.StatusActive).updateValue(
-                lastSensorResultRecordedAt != undefined && Date.now() - lastSensorResultRecordedAt < 2 * 60 * 60 * 1000
-            );
         }
     }
 
@@ -428,18 +426,14 @@ export class AirthingsPlugin implements AccessoryPlugin {
     }
 }
 
+interface SensorResult {
+    serialNumber: string;
+    sensors: { sensorType: string, value: number }[];
+    recorded?: string;
+}
+
 interface AirthingsPluginConfig extends AccessoryConfig {
-    clientId?: string;
-    clientSecret?: string;
     serialNumber?: string;
     batteryDisabled?: boolean;
     co2AirQualityDisabled?: boolean;
-    humidityAirQualityDisabled?: boolean;
-    pm25AirQualityDisabled?: boolean;
-    radonAirQualityDisabled?: boolean;
-    vocAirQualityDisabled?: boolean;
-    co2DetectedThreshold?: number;
-    radonLeakThreshold?: number;
-    debug?: boolean;
-    refreshInterval?: number;
-}
+    humidityAirQuality
