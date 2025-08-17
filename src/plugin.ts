@@ -237,7 +237,7 @@ export class AirthingsPlugin implements AccessoryPlugin {
                     continue;
                 }
 
-                const data = await res.json();
+                const data = await res.json() as { state: string };
                 const value = parseFloat(data.state);
 
                 if (!isNaN(value)) {
