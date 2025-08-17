@@ -434,6 +434,17 @@ interface SensorResult {
 
 interface AirthingsPluginConfig extends AccessoryConfig {
     serialNumber?: string;
+    homeAssistantUrl?: string;
+    homeAssistantToken?: string;
     batteryDisabled?: boolean;
     co2AirQualityDisabled?: boolean;
-    humidityAirQuality
+    humidityAirQualityDisabled?: boolean;
+    pm25AirQualityDisabled?: boolean;
+    radonAirQualityDisabled?: boolean;
+    vocAirQualityDisabled?: boolean;
+    co2DetectedThreshold?: number;
+    radonLeakThreshold?: number;
+    debug?: boolean;
+    refreshInterval?: number;
+}
+
