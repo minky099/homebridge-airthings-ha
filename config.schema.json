@@ -1,7 +1,7 @@
 {
-  "pluginAlias": "Airthings",
+  "pluginAlias": "homebridge-airthings-ha",
   "pluginType": "accessory",
-  "footerDisplay": "Generating a Client ID & Secret: [Airthings Dashboard](https://dashboard.airthings.com) -> Integrations -> Request API Client",
+  "footerDisplay": "This plugin fetches Airthings sensor values from Home Assistant REST API. Make sure you provide a valid URL and long-lived access token.",
   "schema": {
     "type": "object",
     "properties": {
@@ -11,18 +11,19 @@
         "required": true,
         "default": "Airthings Device"
       },
-      "clientId": {
-        "title": "Client ID",
-        "type": "string",
-        "required": true
-      },
-      "clientSecret": {
-        "title": "Client Secret",
-        "type": "string",
-        "required": true
-      },
       "serialNumber": {
         "title": "Serial Number",
+        "type": "string",
+        "required": true
+      },
+      "homeAssistantUrl": {
+        "title": "Home Assistant URL",
+        "type": "string",
+        "required": true,
+        "placeholder": "http://homeassistant.local:8123"
+      },
+      "homeAssistantToken": {
+        "title": "Home Assistant Long-Lived Access Token",
         "type": "string",
         "required": true
       },
@@ -73,7 +74,7 @@
         "required": false
       },
       "refreshInterval": {
-        "title": "Airthings API Refresh Interval (seconds)",
+        "title": "Refresh Interval (seconds)",
         "type": "number",
         "required": false,
         "placeholder": 150
@@ -90,9 +91,9 @@
         {
           "items": [
             "name",
-            "clientId",
-            "clientSecret",
-            "serialNumber"
+            "serialNumber",
+            "homeAssistantUrl",
+            "homeAssistantToken"
           ]
         }
       ]
