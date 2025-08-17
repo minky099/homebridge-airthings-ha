@@ -1,7 +1,7 @@
 {
   "pluginAlias": "homebridge-airthings-ha",
   "pluginType": "accessory",
-  "footerDisplay": "This plugin fetches Airthings sensor values from Home Assistant REST API. Make sure you provide a valid URL and long-lived access token.",
+  "footerDisplay": "This plugin fetches Airthings sensor values from Home Assistant REST API. Provide the Home Assistant URL, long-lived access token, and entity IDs for the sensors you want to use.",
   "schema": {
     "type": "object",
     "properties": {
@@ -10,11 +10,6 @@
         "type": "string",
         "required": true,
         "default": "Airthings Device"
-      },
-      "serialNumber": {
-        "title": "Serial Number",
-        "type": "string",
-        "required": true
       },
       "homeAssistantUrl": {
         "title": "Home Assistant URL",
@@ -26,6 +21,60 @@
         "title": "Home Assistant Long-Lived Access Token",
         "type": "string",
         "required": true
+      },
+      "entities": {
+        "title": "Home Assistant Entities",
+        "type": "object",
+        "properties": {
+          "co2": {
+            "title": "CO₂ Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_co2"
+          },
+          "humidity": {
+            "title": "Humidity Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_humidity"
+          },
+          "pm25": {
+            "title": "PM2.5 Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_pm25"
+          },
+          "pressure": {
+            "title": "Pressure Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_pressure"
+          },
+          "radonShortTermAvg": {
+            "title": "Radon (Short Term Avg) Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_radon"
+          },
+          "temp": {
+            "title": "Temperature Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_temp"
+          },
+          "voc": {
+            "title": "VOC Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_voc"
+          },
+          "battery": {
+            "title": "Battery Entity ID",
+            "type": "string",
+            "required": false,
+            "placeholder": "sensor.livingroom_airthings_battery"
+          }
+        }
       },
       "co2AirQualityDisabled": {
         "title": "CO₂ Disabled in Air Quality Sensor",
@@ -91,9 +140,28 @@
         {
           "items": [
             "name",
-            "serialNumber",
             "homeAssistantUrl",
             "homeAssistantToken"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Entity IDs",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        {
+          "items": [
+            "entities.co2",
+            "entities.humidity",
+            "entities.pm25",
+            "entities.pressure",
+            "entities.radonShortTermAvg",
+            "entities.temp",
+            "entities.voc",
+            "entities.battery"
           ]
         }
       ]
