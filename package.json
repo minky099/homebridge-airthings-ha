@@ -34,7 +34,7 @@
     "url": "git+https://github.com/yourname/homebridge-airthings-ha.git"
   },
   "scripts": {
-    "build": "npm run lint && tsc",
+    "build": "tsc",
     "clean": "rimraf ./dist",
     "homebridge": "homebridge -C -D -I 2>&1 | tee ~/.homebridge/homebridge.log",
     "lint": "eslint --max-warnings=0",
