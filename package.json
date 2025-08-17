@@ -1,19 +1,21 @@
 {
-  "name": "homebridge-airthings",
-  "displayName": "Homebridge Airthings",
-  "version": "2.0.1",
-  "description": "A Homebridge plugin for Airthings Air Quality Monitors via the Airthings Consumer API.",
+  "name": "homebridge-airthings-ha",
+  "displayName": "Homebridge Airthings (Home Assistant)",
+  "version": "1.0.0",
+  "description": "A Homebridge plugin for Airthings Air Quality Monitors via Home Assistant REST API.",
   "keywords": [
     "airthings",
+    "home-assistant",
     "homebridge",
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "air-quality"
   ],
-  "homepage": "https://github.com/michaelahern/homebridge-airthings",
+  "homepage": "https://github.com/minky099/homebridge-airthings-ha",
   "bugs": {
-    "url": "http://github.com/michaelahern/homebridge-airthings/issues"
+    "url": "https://github.com/minky099/homebridge-airthings-ha/issues"
   },
   "license": "ISC",
-  "author": "Michael Ahern <michael.ahern@gmail.com>",
+  "author": "Michael Ahern (original) / Your Name (Home Assistant fork)",
   "files": [
     "./config.schema.json",
     "./dist"
@@ -29,7 +31,7 @@
   "types": "./dist/module.d.ts",
   "repository": {
     "type": "git",
-    "url": "git://github.com/michaelahern/homebridge-airthings.git"
+    "url": "git+https://github.com/yourname/homebridge-airthings-ha.git"
   },
   "scripts": {
     "build": "npm run lint && tsc",
@@ -40,7 +42,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "airthings-consumer-api": "^1"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@eslint/json": "^0",
