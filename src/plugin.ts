@@ -222,7 +222,7 @@ export class AirthingsPlugin implements AccessoryPlugin {
             const sensors: any[] = [];
 
             for (const type of sensorTypes) {
-                const entityId = `sensor.${this.airthingsConfig.serialNumber}_${type}`;
+                const entityId = this.airthingsConfig.entities?.[type];
                 const url = `${baseUrl}/api/states/${entityId}`;
 
                 const res = await fetch(url, {
